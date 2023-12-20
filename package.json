@@ -1,20 +1,54 @@
 {
-	"name": "your-module-name",
+	"name": "GigaCore",
 	"version": "0.1.0",
-	"main": "main.js",
+	"main": "dist/main.js",
 	"scripts": {
-		"format": "prettier -w ."
+		"format": "prettier -w .",
+		"prepare": "husky install",
+		"dev": "yarn build:main --watch",
+		"build": "rimraf dist && yarn build:main",
+		"build:main": "tsc -p tsconfig.build.json",
+		"lint:raw": "eslint --ext .ts --ext .js --ignore-pattern dist --ignore-pattern pkg",
+		"lint": "yarn lint:raw .",
+		"dist": "yarn companion-module-build"
 	},
 	"license": "MIT",
+	"lint-staged": {
+		"*.{css,json,md,scss}": [
+			"prettier --write"
+		],
+		"*.{ts,tsx,js,jsx}": [
+			"yarn lint:raw --fix"
+		]
+	},
+	"type": "module",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-your-module-name.git"
+		"url": "git+https://github.com/bitfocus/companion-module-luminex-gigacore.git"
+	},
+	"engines": {
+		"node": "^18.12"
 	},
 	"dependencies": {
-		"@companion-module/base": "~1.5.1"
+		"@companion-module/base": "~1.6.0",
+		"bonjour-service": "^1.1.1",
+		"ws": "^7.2.1"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^1.4.1"
+		"@companion-module/tools": "^1.4.1",
+		"@types/lodash-es": "^4.17.11",
+		"@types/node": "^18.18.8",
+		"@types/ws": "^8.5.10",
+		"eslint": "^8.55.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-n": "^16.4.0",
+		"eslint-plugin-prettier": "^5.0.1",
+		"husky": "^8.0.3",
+		"lint-staged": "^15.0.2",
+		"prettier": "^3.1.1",
+		"rimraf": "^5.0.5",
+		"ts-node": "^10.9.1",
+		"typescript": "~5.2"
 	},
 	"prettier": "@companion-module/tools/.prettierrc.json"
 }
