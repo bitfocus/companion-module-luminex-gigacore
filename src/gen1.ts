@@ -12,8 +12,8 @@ import { InstanceStatus, type CompanionVariableValues } from '@companion-module/
 // - GigaCore16RFO
 // - GigaCore26i
 export class Gen1 extends Device {
-	devicePoll: NodeJS.Timeout | null = null
-	deviceLongPoll: NodeJS.Timeout | null = null
+	devicePoll?: NodeJS.Timeout
+	deviceLongPoll?: NodeJS.Timeout
 	constructor(instance: ModuleInstance) {
 		super(instance)
 	}
@@ -119,11 +119,11 @@ export class Gen1 extends Device {
 	private stopDevicePoll(): void {
 		if (this.devicePoll) {
 			clearInterval(this.devicePoll)
-			this.devicePoll = null
+			delete this.devicePoll
 		}
 		if (this.deviceLongPoll) {
 			clearInterval(this.deviceLongPoll)
-			this.deviceLongPoll = null
+			delete this.deviceLongPoll
 		}
 	}
 

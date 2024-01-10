@@ -51,7 +51,7 @@ const wsSubscriptions: Subscription[] = [
 // - GigaCore10i
 // - GigaCore10t
 export class Gen2 extends Device {
-	private ws: WS | null = null
+	private ws?: WS
 
 	constructor(instance: ModuleInstance) {
 		super(instance)
@@ -59,6 +59,7 @@ export class Gen2 extends Device {
 
 	async destroy(): Promise<void> {
 		this.ws?.close()
+		delete this.ws
 		this.updateStatus(InstanceStatus.Disconnected)
 	}
 
@@ -156,7 +157,7 @@ export class Gen2 extends Device {
 
 	websocketOpen(): void {
 		this.updateStatus(InstanceStatus.Ok)
-		this.log('debug', `Connection opened`)
+		this.log('debug', `Connection opened to ${this.host}`)
 	}
 
 	websocketError(data: string): void {

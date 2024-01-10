@@ -11,7 +11,7 @@ import { Gen2 } from './gen2.js'
 
 export class ModuleInstance extends InstanceBase<config> {
 	config: config | undefined
-	public device: Device | null = null
+	public device?: Device
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -24,13 +24,15 @@ export class ModuleInstance extends InstanceBase<config> {
 		if (host) {
 			if (this.device && old_host !== host) {
 				await this.device?.destroy()
+				delete this.device
 			}
 			this.device = this.config.gen1 ? new Gen1(this) : new Gen2(this)
 			this.updateStatus(InstanceStatus.Connecting)
 			this.device.setConfig(host, this.config ? this.config.password : '')
 			this.device.initConnection()
 		} else {
-			this.device = null
+			await this.device?.destroy()
+			delete this.device
 		}
 		this.initVariables()
 		this.initFeedbacks()

@@ -29,10 +29,10 @@ export interface Subscription {
 }
 
 export class WS {
-	ws: WebSocket | null = null
-	reconnect_timer: NodeJS.Timeout | null = null
-	ping_timer: NodeJS.Timeout | null = null
-	pong_timeout: NodeJS.Timeout | null = null
+	ws?: WebSocket
+	reconnect_timer?: NodeJS.Timeout
+	ping_timer?: NodeJS.Timeout
+	pong_timeout?: NodeJS.Timeout
 
 	callbacks: WsCallbacks
 	subscriptions: Subscription[]
@@ -47,14 +47,14 @@ export class WS {
 	public init(): void {
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
-			this.reconnect_timer = null
+			delete this.reconnect_timer
 		}
 
 		const url = `ws://${this.host}/api/ws`
 
 		if (this.ws) {
 			this.ws.close(1000)
-			this.ws = null
+			delete this.ws
 		}
 		this.ws = new WebSocket(url)
 
@@ -66,19 +66,20 @@ export class WS {
 
 	public close(): void {
 		this.ws?.close(1000)
-		this.ws = null
+		delete this.ws
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
-			this.reconnect_timer = null
+			delete this.reconnect_timer
 		}
 		if (this.ping_timer) {
 			clearInterval(this.ping_timer)
-			this.ping_timer = null
+			delete this.ping_timer
 		}
 		if (this.pong_timeout) {
 			clearTimeout(this.pong_timeout)
-			this.pong_timeout = null
+			delete this.pong_timeout
 		}
+		console.log(`WS closed for ${this.host}`)
 	}
 
 	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -98,7 +99,7 @@ export class WS {
 	}
 
 	websocketClose(event: WebSocket.CloseEvent): void {
-		this.disconnect(`Connection closed with code ${event.code}`)
+		this.disconnect(`Connection to ${this.host} closed with code ${event.code}`)
 	}
 
 	websocketError(event: WebSocket.Event): void {
@@ -111,16 +112,19 @@ export class WS {
 	}
 
 	maybeReconnect(): void {
+		if (!this.ws) {
+			return
+		}
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
 		}
 		if (this.ping_timer) {
 			clearInterval(this.ping_timer)
-			this.ping_timer = null
+			delete this.ping_timer
 		}
 		if (this.pong_timeout) {
 			clearTimeout(this.pong_timeout)
-			this.pong_timeout = null
+			delete this.pong_timeout
 		}
 		this.reconnect_timer = setTimeout(() => {
 			this.init()
@@ -133,7 +137,7 @@ export class WS {
 		}
 		if (this.pong_timeout) {
 			clearTimeout(this.pong_timeout)
-			this.pong_timeout = null
+			delete this.pong_timeout
 		}
 		this.ping_timer = setInterval(() => {
 			if (this.pong_timeout) {
@@ -157,7 +161,7 @@ export class WS {
 		if (msgValue === 'pong') {
 			if (this.pong_timeout) {
 				clearTimeout(this.pong_timeout)
-				this.pong_timeout = null
+				delete this.pong_timeout
 			}
 			return
 		}
