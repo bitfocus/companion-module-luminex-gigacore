@@ -91,7 +91,7 @@ export class Gen1 extends Device {
 		this.sendCommand('config/poe_config', 'GET')
 		this.sendCommand('config/groups', 'GET')
 		this.sendCommand('config/portprotect', 'GET')
-		if (!this.poe_capable) {
+		if (this.poe_capable) {
 			this.sendCommand('stat/poe_status', 'GET')
 		}
 	}
@@ -327,7 +327,7 @@ export class Gen1 extends Device {
 			const variables: CompanionVariableValues = {}
 			let sourcing_change = false
 			ports.forEach((val) => {
-				const port_config = val.split('/', 5)
+				const port_config = val.split('/', 8)
 				const port_nr = parseInt(port_config[0])
 
 				if (Number.isNaN(port_nr)) {
@@ -668,11 +668,16 @@ export class Gen1 extends Device {
 		params[`hidden_poe_mode_${port_nr}`] = mode
 		this.sendCommand(`config/poe_config`, 'POST', params)
 		// If disabling, reset sourcing immediately
+		const variables: CompanionVariableValues = {}
 		if (enabled === false) {
 			const port = this.poe_ports.findIndex((p) => p.port_number === port_nr)
 			this.poe_ports[port].sourcing = false
-			this.instance.checkFeedbacks(FeedbackId.poeSourcing)
+			this.poe_ports[port].enabled = false
+			this.instance.checkFeedbacks(FeedbackId.poeEnabled, FeedbackId.poeSourcing)
+			variables[`port_${port_nr}_poe_sourcing`] = false
 		}
+		variables[`port_${port_nr}_poe_enabled`] = enabled
+		this.instance.setVariableValues(variables)
 	}
 
 	public setPortLink(port_nr: number, enabled: boolean): void {
