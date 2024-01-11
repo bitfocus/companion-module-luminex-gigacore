@@ -474,7 +474,9 @@ export class Gen2 extends Device {
 				return
 			}
 			const variables: CompanionVariableValues = {}
+			let protect_change = false
 			if (!this.profiles.length) {
+				protect_change = true
 				const profiles: Profile[] = []
 				data.forEach((profile: any) => {
 					const id = profile.slot + 1
@@ -497,11 +499,17 @@ export class Gen2 extends Device {
 						this.profiles[profile_idx].empty = profile.name === '__empty__'
 					}
 					if ('protected' in profile) {
-						this.profiles[profile_idx].protected = profile.protected
+						if (this.profiles[profile_idx].protected != profile.protected) {
+							this.profiles[profile_idx].protected = profile.protected
+							protect_change = true
+						}
 					}
 				})
 			}
 			this.instance.setVariableValues(variables)
+			if (protect_change) {
+				this.instance.checkFeedbacks(FeedbackId.profileProtected)
+			}
 		} else {
 			this.log('debug', `Unhandled command ${cmd}: ${JSON.stringify(data)}`)
 		}

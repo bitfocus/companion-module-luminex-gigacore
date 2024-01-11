@@ -175,7 +175,7 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					text: `Save to profile ${id}`,
 					size: 'auto',
 					color: Color.Yellow,
-					bgcolor: 0,
+					bgcolor: Color.Grey,
 				},
 				steps: [
 					{
@@ -191,7 +191,17 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 						up: [],
 					},
 				],
-				feedbacks: [],
+				feedbacks: [
+					{
+						feedbackId: FeedbackId.profileProtected,
+						options: {
+							profile: id,
+						},
+						style: {
+							color: Color.Red,
+						},
+					},
+				],
 			}
 		})
 

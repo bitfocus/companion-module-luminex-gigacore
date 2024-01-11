@@ -18,6 +18,7 @@ export enum FeedbackId {
 	selectedGroupColor = 'selected_group_color',
 	portProtected = 'port_protected',
 	selectedPortProtected = 'selected_port_protected',
+	profileProtected = 'profile_protected',
 }
 
 export function getFeedbacks(device: Device): CompanionFeedbackDefinitions {
@@ -285,6 +286,33 @@ export function getFeedbacks(device: Device): CompanionFeedbackDefinitions {
 		callback: (): boolean => {
 			const port_nr = Number(device.getVariableValue(`selected_port`))
 			return device.getPortProtected(port_nr)
+		},
+	}
+
+	feedbacks[FeedbackId.profileProtected] = {
+		type: 'advanced',
+		name: 'Profile Protected',
+		description: 'Change style if a profile is locked / protected',
+		options: [
+			{
+				type: 'number',
+				label: 'Profile',
+				id: 'profile',
+				default: 1,
+				min: 1,
+				max: device.getNrProfiles(),
+			},
+		],
+		callback: (feedback): CompanionAdvancedFeedbackResult => {
+			const profile = Number(feedback.options.profile)
+			if (device.getProfileProtected(profile)) {
+				return {
+					png64: Icon.LOCK_ICON,
+					pngalignment: 'center:center',
+				}
+			} else {
+				return {}
+			}
 		},
 	}
 
