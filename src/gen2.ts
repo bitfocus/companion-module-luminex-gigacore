@@ -493,7 +493,7 @@ export class Gen2 extends Device {
 
 	public reboot(wait: number): void {
 		this.sendCommand(`reboot`, 'PUT', {
-			duration: wait,
+			wait: wait,
 		})
 		setTimeout(() => this.disconnect(`Reboot triggered`), wait + 500)
 	}

@@ -103,7 +103,13 @@ export class WS {
 	}
 
 	websocketError(event: WebSocket.Event): void {
-		this.callbacks.onerror(JSON.stringify(event))
+		let msgValue = null
+		try {
+			msgValue = JSON.stringify(event)
+		} catch (e) {
+			msgValue = 'websocket error'
+		}
+		this.callbacks.onerror(msgValue)
 	}
 
 	public disconnect(msg: string): void {

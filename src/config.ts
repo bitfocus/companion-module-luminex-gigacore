@@ -52,6 +52,7 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
 			label: 'Password',
 			tooltip: 'Only provide a password when authentication is enabled on the device',
 			width: 6,
+			default: '',
 		},
 	]
 }

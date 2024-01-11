@@ -41,6 +41,7 @@ export class Gen1 extends Device {
 				if (res.status == 200) {
 					return res.text()
 				} else {
+					this.log('debug', `Failed connection to ${this.host}, response code ${res.status}`)
 					throw new Error(res.toString())
 				}
 			})
