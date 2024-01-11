@@ -10,6 +10,7 @@ export enum ActionId {
 	Reboot = 'reboot',
 	Reset = 'reset',
 	RecallProfile = 'recall_profile',
+	SaveProfile = 'save_profile',
 	SetPortToGroup = 'set_port_to_group',
 	SetPortToTrunk = 'set_port_to_trunk',
 	IncrementPortGroupOrTrunk = 'increment_port_group_or_trunk',
@@ -126,6 +127,36 @@ export function getActions(device: Device): CompanionActionsExt {
 				const profile = Number(action.options.profile)
 				const keep_ip = action.options.keep_ip_settings !== undefined ? Boolean(action.options.keep_ip_settings) : true
 				device.recallProfile(profile, keep_ip, wait)
+			},
+		} satisfies CompanionActionDefinition,
+		[ActionId.SaveProfile]: {
+			name: 'Save current configuration to profile',
+			options: [
+				{
+					type: 'number',
+					label: 'Profile number',
+					id: 'profile',
+					tooltip: '1-based profile number',
+					default: 1,
+					min: 1,
+					max: device.getNrProfiles(),
+				},
+				{
+					type: 'textinput',
+					label: 'Profile name',
+					id: 'name',
+					tooltip: 'The name that the new profile should get',
+					default: 'Profile',
+				},
+			],
+			callback: (action) => {
+				if (action.options.profile === undefined || action.options.name === undefined) {
+					device.log('info', `No profile number or name defined`)
+					return
+				}
+				const profile = Number(action.options.profile)
+				const name = action.options.name.toString()
+				device.saveProfile(profile, name)
 			},
 		} satisfies CompanionActionDefinition,
 		[ActionId.SetPortToGroup]: {

@@ -167,6 +167,32 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 				],
 				feedbacks: [],
 			}
+			presets[`save_profile_${id}`] = {
+				type: 'button',
+				category: 'Profiles',
+				name: `Save to profile ${id}`,
+				style: {
+					text: `Save to profile ${id}`,
+					size: 'auto',
+					color: Color.Yellow,
+					bgcolor: 0,
+				},
+				steps: [
+					{
+						down: [
+							{
+								actionId: ActionId.SaveProfile,
+								options: {
+									profile: id,
+									name: `Profile ${id}`,
+								},
+							},
+						],
+						up: [],
+					},
+				],
+				feedbacks: [],
+			}
 		})
 
 	if (device.groups) {

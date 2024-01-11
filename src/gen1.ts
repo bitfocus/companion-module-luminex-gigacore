@@ -1,7 +1,7 @@
 import { ModuleInstance } from './main.js'
 import { FeedbackId } from './feedbacks.js'
 import { FixedVariableId } from './variables.js'
-import { Device, type Port, type PoePort, type Group, type Trunk, type MemberOf } from './device.js'
+import { Device, type Port, type PoePort, type Profile, type Group, type Trunk, type MemberOf } from './device.js'
 import { InstanceStatus, type CompanionVariableValues } from '@companion-module/base'
 
 // Class for handling communication with GigaCore 'gen1' devices:
@@ -247,11 +247,30 @@ export class Gen1 extends Device {
 		} else if (cmd.startsWith('config/icfg_profile_list')) {
 			const changedVariables: CompanionVariableValues = {}
 			const params = data.split('*', 10)
-			params.forEach((profile, i) => {
-				const id = i + 1
-				const profile_name = decodeURI(profile.substring(5))
-				changedVariables[`profile_${id}_name`] = profile_name
-			})
+			if (!this.profiles.length) {
+				const profiles: Profile[] = []
+				params.forEach((profile, i) => {
+					const id = i + 1
+					const profile_name = decodeURI(profile.substring(5))
+					changedVariables[`profile_${id}_name`] = profile_name
+					profiles.push({
+						id: id,
+						name: profile_name,
+						empty: profile_name === '',
+						protected: false,
+					})
+				})
+				this.profiles = profiles
+			} else {
+				params.forEach((profile, i) => {
+					const id = i + 1
+					const profile_name = decodeURI(profile.substring(5))
+					changedVariables[`profile_${id}_name`] = profile_name
+					const profile_idx = this.profiles.findIndex((p) => p.id === id)
+					this.profiles[profile_idx].name = profile_name
+					this.profiles[profile_idx].empty = profile_name === ''
+				})
+			}
 			this.instance.setVariableValues(changedVariables)
 		} else if (cmd.startsWith('config/poe_config')) {
 			const params = data.split('|', 4)
@@ -588,6 +607,10 @@ export class Gen1 extends Device {
 	}
 
 	public recallProfile(profile: number, keep_ip: boolean, wait: number): void {
+		if (this.getProfileEmpty(profile)) {
+			this.log('info', `Profile ${profile} is empty and cannot be recalled`)
+			return
+		}
 		const params: any = {}
 		params['slot_name'] = 'Slot' + profile.toString(16).toUpperCase()
 		if (keep_ip) {
@@ -597,6 +620,17 @@ export class Gen1 extends Device {
 			this.sendCommand(`config/icfg_profile_activate`, 'POST', params)
 			setTimeout(() => this.disconnect(`Profile recall triggered`), 500)
 		}, wait)
+	}
+
+	public saveProfile(profile: number, name: string): void {
+		if (this.getProfileProtected(profile)) {
+			this.log('info', `Profile ${profile} is protected and cannot be overwritten`)
+			return
+		}
+		const params: any = {}
+		params['slot_name'] = 'Slot' + profile.toString(16).toUpperCase()
+		params['profile_name'] = name
+		this.sendCommand(`config/icfg_profile_save`, 'POST', params)
 	}
 
 	public setPortToGroup(port_nr: number, group_id: number): void {

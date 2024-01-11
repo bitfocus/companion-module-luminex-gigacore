@@ -33,6 +33,13 @@ export interface Trunk {
 	color: string
 }
 
+export interface Profile {
+	id: number
+	name: string
+	empty: boolean
+	protected: boolean
+}
+
 export abstract class Device {
 	host = ''
 	password = ''
@@ -46,6 +53,7 @@ export abstract class Device {
 	poe_ports: PoePort[] = []
 	groups: Group[] = []
 	trunks: Trunk[] = []
+	profiles: Profile[] = []
 
 	constructor(instance: ModuleInstance) {
 		this.instance = instance
@@ -84,6 +92,29 @@ export abstract class Device {
 			return false
 		}
 		return port.protected
+	}
+
+	getProfile(id: number): Profile | undefined {
+		if (!this.profiles) {
+			return undefined
+		}
+		return this.profiles.find((p) => p.id === id)
+	}
+
+	public getProfileProtected(id: number): boolean {
+		const profile = this.getProfile(id)
+		if (!profile) {
+			return false
+		}
+		return profile.protected
+	}
+
+	public getProfileEmpty(id: number): boolean {
+		const profile = this.getProfile(id)
+		if (!profile) {
+			return true
+		}
+		return profile.empty
 	}
 
 	getMemberOfNameAndColor(member_of: MemberOf): { color: string; name: string } | undefined {
@@ -141,6 +172,7 @@ export abstract class Device {
 	public abstract reboot(wait: number): void
 	public abstract reset(keep_ip: boolean, keep_profiles: boolean, wait: number): void
 	public abstract recallProfile(profile: number, keep_ip: boolean, wait: number): void
+	public abstract saveProfile(profile: number, name: string): void
 	public abstract setPortToGroup(port_nr: number, group_id: number): void
 	public abstract setPortToTrunk(port_nr: number, trunk_id: number): void
 	public abstract incrementMemberOf(port_nr: number): void

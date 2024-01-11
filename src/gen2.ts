@@ -2,7 +2,7 @@ import { ModuleInstance } from './main.js'
 import { FeedbackId } from './feedbacks.js'
 import { FixedVariableId } from './variables.js'
 import { WS, type Subscription } from './websocket.js'
-import { Device, type Port, type PoePort, type Group, type Trunk } from './device.js'
+import { Device, type Port, type PoePort, type Profile, type Group, type Trunk } from './device.js'
 import { InstanceStatus, type CompanionVariableValues } from '@companion-module/base'
 
 type Json = boolean | number | string | { [key: string]: Json } | Array<Json>
@@ -466,18 +466,41 @@ export class Gen2 extends Device {
 			// Nothing to do
 		} else if (cmd.startsWith('config/profiles') && cmd.endsWith('recall')) {
 			// Nothing to do
+		} else if (cmd.startsWith('config/profiles') && cmd.endsWith('save')) {
+			// Nothing to do
 		} else if (cmd.startsWith('config/profiles')) {
 			if (!Array.isArray(data)) {
 				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
-			data.forEach((profile: any) => {
-				const id = profile.slot + 1
-				if ('name' in profile) {
+			if (!this.profiles.length) {
+				const profiles: Profile[] = []
+				data.forEach((profile: any) => {
+					const id = profile.slot + 1
+					profiles.push({
+						id: id,
+						name: profile.name,
+						empty: profile.name === '__empty__',
+						protected: profile.protected,
+					})
 					variables[`profile_${id}_name`] = profile.name
-				}
-			})
+				})
+				this.profiles = profiles
+			} else {
+				data.forEach((profile: any) => {
+					const id = profile.slot + 1
+					const profile_idx = this.profiles.findIndex((p) => p.id === id)
+					if ('name' in profile) {
+						variables[`profile_${id}_name`] = profile.name
+						this.profiles[profile_idx].name = profile.name
+						this.profiles[profile_idx].empty = profile.name === '__empty__'
+					}
+					if ('protected' in profile) {
+						this.profiles[profile_idx].protected = profile.protected
+					}
+				})
+			}
 			this.instance.setVariableValues(variables)
 		} else {
 			this.log('debug', `Unhandled command ${cmd}: ${JSON.stringify(data)}`)
@@ -508,12 +531,27 @@ export class Gen2 extends Device {
 	}
 
 	public recallProfile(profile: number, keep_ip: boolean, wait: number): void {
+		if (this.getProfileEmpty(profile)) {
+			this.log('info', `Profile ${profile} is empty and cannot be recalled`)
+			return
+		}
 		const profile_id = profile - 1
 		this.sendCommand(`config/profiles/${profile_id}/recall`, 'PUT', {
 			keep_ip: keep_ip,
 			wait: wait,
 		})
 		setTimeout(() => this.disconnect(`Profile recall triggered`), wait + 500)
+	}
+
+	public saveProfile(profile: number, name: string): void {
+		if (this.getProfileProtected(profile)) {
+			this.log('info', `Profile ${profile} is protected and cannot be overwritten`)
+			return
+		}
+		const profile_id = profile - 1
+		this.sendCommand(`config/profiles/${profile_id}/save`, 'PUT', {
+			name: name,
+		})
 	}
 
 	public setPortToGroup(port_nr: number, group_id: number): void {
