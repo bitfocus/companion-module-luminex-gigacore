@@ -3,7 +3,7 @@
 	"name": "luminex-gigacore",
 	"shortname": "GigaCore",
 	"description": "Interaction with Luminex GigaCore devices.",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-luminex-gigacore.git",
 	"bugs": "https://github.com/bitfocus/companion-module-luminex-gigacore/issues",
