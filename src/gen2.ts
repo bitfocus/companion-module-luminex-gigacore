@@ -55,6 +55,17 @@ const wsSubscriptions: Subscription[] = [
 export class Gen2 extends Device {
 	private ws?: WS
 
+	private safeStringify(value: unknown): string {
+		try {
+			if (typeof value === 'string') return value
+			if (value === null) return 'null'
+			if (value === undefined) return 'undefined'
+			return JSON.stringify(value)
+		} catch (_) {
+			return String(value)
+		}
+	}
+
 	constructor(instance: ModuleInstance) {
 		super(instance)
 	}
@@ -103,7 +114,7 @@ export class Gen2 extends Device {
 				if (res.status == 200) {
 					return res.json()
 				}
-				throw new Error(res.toString())
+				throw new Error(this.safeStringify(res))
 			})
 			.then((data) => {
 				if (typeof data === 'object' && data !== null) {
@@ -163,7 +174,7 @@ export class Gen2 extends Device {
 	}
 
 	websocketError(data: string): void {
-		this.log('error', `WebSocket error: ${data}`)
+		this.log('error', `WebSocket error: ${this.safeStringify(data)}`)
 	}
 
 	websocketDisconnect(msg: string): void {
@@ -214,7 +225,7 @@ export class Gen2 extends Device {
 					throw new Error(`Unexpected content type: ${contentType}`)
 				} else {
 					this.log('error', `Error on ${cmd}: ${JSON.stringify(res)}`)
-					throw new Error(res.toString())
+					throw new Error(this.safeStringify(res))
 				}
 			})
 			.then((json) => {
@@ -229,8 +240,8 @@ export class Gen2 extends Device {
 		if (cmd.startsWith('device')) {
 			if (typeof data === 'object' && data && 'name' in data && 'description' in data) {
 				this.instance.setVariableValues({
-					[FixedVariableId.deviceName]: data.name.toString(),
-					[FixedVariableId.description]: data.description.toString(),
+					[FixedVariableId.deviceName]: this.safeStringify(data.name),
+					[FixedVariableId.description]: this.safeStringify(data.description),
 				})
 			}
 		} else if (cmd.startsWith('ports/port') && cmd.endsWith('member_of')) {
@@ -239,7 +250,7 @@ export class Gen2 extends Device {
 			// ignore
 		} else if (cmd.startsWith('ports/port')) {
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
@@ -341,7 +352,7 @@ export class Gen2 extends Device {
 				return
 			}
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
@@ -369,7 +380,7 @@ export class Gen2 extends Device {
 				return
 			}
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
@@ -393,7 +404,7 @@ export class Gen2 extends Device {
 			)
 		} else if (cmd.startsWith('poe/capable')) {
 			if (typeof data !== 'boolean') {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			this.poe_capable = data
@@ -406,7 +417,7 @@ export class Gen2 extends Device {
 				return
 			}
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
@@ -454,7 +465,7 @@ export class Gen2 extends Device {
 			}
 		} else if (cmd.startsWith('config/name')) {
 			if (typeof data !== 'string') {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
@@ -472,7 +483,7 @@ export class Gen2 extends Device {
 			// Nothing to do
 		} else if (cmd.startsWith('config/profiles')) {
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}

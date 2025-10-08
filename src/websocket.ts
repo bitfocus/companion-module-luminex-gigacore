@@ -106,7 +106,7 @@ export class WS {
 		let msgValue = null
 		try {
 			msgValue = JSON.stringify(event)
-		} catch (e) {
+		} catch (_) {
 			msgValue = 'websocket error'
 		}
 		this.callbacks.onerror(msgValue)
@@ -137,6 +137,17 @@ export class WS {
 		}, 5000)
 	}
 
+	private safeStringify(value: unknown): string {
+		try {
+			if (typeof value === 'string') return value
+			if (value === null) return 'null'
+			if (value === undefined) return 'undefined'
+			return JSON.stringify(value)
+		} catch (_) {
+			return String(value)
+		}
+	}
+
 	initPingPong(): void {
 		if (this.ping_timer) {
 			clearInterval(this.ping_timer)
@@ -157,12 +168,7 @@ export class WS {
 	}
 
 	messageReceivedFromWebSocket(event: WebSocket.MessageEvent): void {
-		let msgValue = null
-		try {
-			msgValue = JSON.parse(event.data.toString())
-		} catch (e) {
-			msgValue = event.data
-		}
+		const msgValue = this.safeStringify(event.data)
 
 		if (msgValue === 'pong') {
 			if (this.pong_timeout) {
