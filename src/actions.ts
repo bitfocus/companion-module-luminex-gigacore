@@ -147,15 +147,16 @@ export function getActions(device: Device): CompanionActionsExt {
 					id: 'name',
 					tooltip: 'The name that the new profile should get',
 					default: 'Profile',
+					useVariables: true,
 				},
 			],
-			callback: (action) => {
+			callback: async (action) => {
 				if (action.options.profile === undefined || action.options.name === undefined) {
 					device.log('info', `No profile number or name defined`)
 					return
 				}
 				const profile = Number(action.options.profile)
-				const name = action.options.name.toString()
+				const name = await device.instance.parseVariablesInString(action.options.name.toString())
 				device.saveProfile(profile, name)
 			},
 		} satisfies CompanionActionDefinition,
