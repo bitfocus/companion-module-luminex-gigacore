@@ -50,6 +50,8 @@ const wsSubscriptions: Subscription[] = [
 // - GigaCore16i
 // - GigaCore10i
 // - GigaCore10t
+// - GigaCore16tf
+// - GigaCore10t-IP
 export class Gen2 extends Device {
 	private ws?: WS
 
