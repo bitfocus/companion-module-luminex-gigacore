@@ -44,6 +44,17 @@ export class WS {
 		this.subscriptions = subscriptions
 	}
 
+	private safeStringify(value: unknown): string {
+		try {
+			if (typeof value === 'string') return value
+			if (value === null) return 'null'
+			if (value === undefined) return 'undefined'
+			return JSON.stringify(value)
+		} catch (_) {
+			return String(value)
+		}
+	}
+
 	public init(): void {
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
@@ -137,17 +148,6 @@ export class WS {
 		}, 5000)
 	}
 
-	private safeStringify(value: unknown): string {
-		try {
-			if (typeof value === 'string') return value
-			if (value === null) return 'null'
-			if (value === undefined) return 'undefined'
-			return JSON.stringify(value)
-		} catch (_) {
-			return String(value)
-		}
-	}
-
 	initPingPong(): void {
 		if (this.ping_timer) {
 			clearInterval(this.ping_timer)
@@ -168,7 +168,12 @@ export class WS {
 	}
 
 	messageReceivedFromWebSocket(event: WebSocket.MessageEvent): void {
-		const msgValue = this.safeStringify(event.data)
+		let msgValue = null
+		try {
+			msgValue = JSON.parse(this.safeStringify(event.data))
+		} catch (_) {
+			msgValue = event.data
+		}
 
 		if (msgValue === 'pong') {
 			if (this.pong_timeout) {
