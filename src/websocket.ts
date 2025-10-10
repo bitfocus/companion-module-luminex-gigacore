@@ -44,6 +44,17 @@ export class WS {
 		this.subscriptions = subscriptions
 	}
 
+	private safeStringify(value: unknown): string {
+		try {
+			if (typeof value === 'string') return value
+			if (value === null) return 'null'
+			if (value === undefined) return 'undefined'
+			return JSON.stringify(value)
+		} catch (_) {
+			return String(value)
+		}
+	}
+
 	public init(): void {
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
@@ -106,7 +117,7 @@ export class WS {
 		let msgValue = null
 		try {
 			msgValue = JSON.stringify(event)
-		} catch (e) {
+		} catch (_) {
 			msgValue = 'websocket error'
 		}
 		this.callbacks.onerror(msgValue)
@@ -159,8 +170,8 @@ export class WS {
 	messageReceivedFromWebSocket(event: WebSocket.MessageEvent): void {
 		let msgValue = null
 		try {
-			msgValue = JSON.parse(event.data.toString())
-		} catch (e) {
+			msgValue = JSON.parse(this.safeStringify(event.data))
+		} catch (_) {
 			msgValue = event.data
 		}
 

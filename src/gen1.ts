@@ -14,6 +14,17 @@ import { InstanceStatus, type CompanionVariableValues } from '@companion-module/
 export class Gen1 extends Device {
 	devicePoll?: NodeJS.Timeout
 	deviceLongPoll?: NodeJS.Timeout
+
+	private safeStringify(value: unknown): string {
+		try {
+			if (typeof value === 'string') return value
+			if (value === null) return 'null'
+			if (value === undefined) return 'undefined'
+			return JSON.stringify(value)
+		} catch (_) {
+			return String(value)
+		}
+	}
 	constructor(instance: ModuleInstance) {
 		super(instance)
 	}
@@ -42,7 +53,7 @@ export class Gen1 extends Device {
 					return res.text()
 				} else {
 					this.log('debug', `Failed connection to ${this.host}, response code ${res.status}`)
-					throw new Error(res.toString())
+					throw new Error(this.safeStringify(res))
 				}
 			})
 			.then((data) => {
@@ -181,7 +192,7 @@ export class Gen1 extends Device {
 							})
 					}
 				} else {
-					throw new Error(res.toString())
+					throw new Error(this.safeStringify(res))
 				}
 			})
 			.catch((error) => {
@@ -192,7 +203,7 @@ export class Gen1 extends Device {
 	private processJsonData(cmd: string, data: any): void {
 		if (cmd.startsWith('config/portprotect')) {
 			if (!Array.isArray(data)) {
-				this.log('error', `Unexpected type for response to ${cmd}: ${data}`)
+				this.log('error', `Unexpected type for response to ${cmd}: ${this.safeStringify(data)}`)
 				return
 			}
 			const variables: CompanionVariableValues = {}
