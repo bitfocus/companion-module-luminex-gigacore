@@ -37,7 +37,7 @@
 		"ws": "^7.5.10"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^2.4.1",
+		"@companion-module/tools": "^2.6.1",
 		"@types/lodash-es": "^4.17.12",
 		"@types/node": "^18.19.129",
 		"@types/ws": "^8.18.1",
