@@ -1,5 +1,5 @@
-import { InstanceBase, InstanceStatus, type SomeCompanionConfigField } from '@companion-module/base'
-import { type config, type ModuleInstanceTypes, getConfigFields } from './config.js'
+import { InstanceBase, InstanceStatus, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
+import { type config, getConfigFields } from './config.js'
 import { getActions } from './actions.js'
 import { getPresets } from './presets.js'
 import { getVariables } from './variables.js'
@@ -9,7 +9,7 @@ import { Device } from './device.js'
 import { Gen1 } from './gen1.js'
 import { Gen2 } from './gen2.js'
 
-export default class ModuleInstance extends InstanceBase<ModuleInstanceTypes> {
+export default class ModuleInstance extends InstanceBase<InstanceTypes> {
 	config: config | undefined
 	public device?: Device
 

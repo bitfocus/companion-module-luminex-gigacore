@@ -8,9 +8,7 @@ export interface config {
 	[key: string]: any
 }
 
-export interface ModuleInstanceTypes extends InstanceTypes {}
-
-export const instanceTypes: ModuleInstanceTypes = {
+export const instanceTypes: InstanceTypes = {
 	config: {} as config,
 	secrets: {},
 	actions: {},
@@ -37,7 +35,7 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
 			id: 'host',
 			label: 'GigaCore IP',
 			width: 4,
-			isVisibleExpression: `!!!$(options:bonjour_host)`,
+			isVisibleExpression: `!$(options:bonjour_host)`,
 		},
 		{
 			type: 'checkbox',
