@@ -156,7 +156,7 @@ export function getActions(device: Device): CompanionActionsExt {
 					return
 				}
 				const profile = Number(action.options.profile)
-				const name = await device.instance.parseVariablesInString(action.options.name.toString())
+				const name = action.options.name as string
 				device.saveProfile(profile, name)
 			},
 		} satisfies CompanionActionDefinition,
@@ -253,25 +253,23 @@ export function getActions(device: Device): CompanionActionsExt {
 				if (action.options.expression === undefined || action.options.variable === undefined) {
 					return
 				}
-				const variable = action.options.variable
-				device.instance
-					.parseVariablesInString(action.options.expression.toString())
-					.then((expression) => {
-						const value = eval(expression)
-						if (variable !== undefined && !Number.isNaN(value)) {
-							const changedVariables: CompanionVariableValues = {}
-							changedVariables[`${variable}`] = value
-							device.instance.setVariableValues(changedVariables)
-							if (variable === 'selected_port') {
-								device.instance.checkFeedbacks(FeedbackId.selectedPortColor, FeedbackId.selectedPortProtected)
-							} else if (variable === 'selected_group') {
-								device.instance.checkFeedbacks(FeedbackId.selectedGroupColor)
-							}
+				const variable = action.options.variable as string
+				try {
+					const expression = action.options.expression as string
+					const value = eval(expression)
+					if (variable !== undefined && !Number.isNaN(value)) {
+						const changedVariables: CompanionVariableValues = {}
+						changedVariables[`${variable}`] = value
+						device.instance.setVariableValues(changedVariables)
+						if (variable === 'selected_port') {
+							device.instance.checkFeedbacks(FeedbackId.selectedPortColor, FeedbackId.selectedPortProtected)
+						} else if (variable === 'selected_group') {
+							device.instance.checkFeedbacks(FeedbackId.selectedGroupColor)
 						}
-					})
-					.catch((e) => {
-						device.log('debug', `Failed to change ${variable}: ${e.toString()}`)
-					})
+					}
+				} catch (e: any) {
+					device.log('debug', `Failed to change ${variable}: ${e.toString()}`)
+				}
 			},
 		} satisfies CompanionActionDefinition,
 

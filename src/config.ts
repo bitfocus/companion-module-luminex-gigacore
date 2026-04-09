@@ -1,15 +1,25 @@
-import { InstanceBase, type SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
 
 export interface config {
 	bonjour_host: string
 	host: string
 	password: string
 	gen1: boolean
+	[key: string]: any
 }
 
-export interface InstanceBaseExt<TConfig> extends InstanceBase<TConfig> {
-	[x: string]: any
-	config: TConfig
+export interface ModuleInstanceTypes extends InstanceTypes {}
+
+export const instanceTypes: ModuleInstanceTypes = {
+	config: {} as config,
+	secrets: {},
+	actions: {},
+	feedbacks: {},
+	variables: {},
+}
+
+export interface InstanceBaseExt<TInstanceTypes extends InstanceTypes> extends InstanceBase<TInstanceTypes> {
+	config: TInstanceTypes['config']
 	UpdateVariablesValues(): void
 	InitVariables(): void
 }
@@ -26,16 +36,8 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
 			type: 'textinput',
 			id: 'host',
 			label: 'GigaCore IP',
-			isVisible: (options) => !options['bonjour_host'],
 			width: 4,
-		},
-		{
-			type: 'static-text',
-			id: 'gigacore-filler',
-			width: 4,
-			label: '',
-			isVisible: (options) => !!options['bonjour_host'],
-			value: '',
+			isVisibleExpression: `!!!$(options:bonjour_host)`,
 		},
 		{
 			type: 'checkbox',
