@@ -1,4 +1,4 @@
-import { ModuleInstance } from './main.js'
+import ModuleInstance from './main.js'
 import { InstanceStatus, type CompanionVariableValue } from '@companion-module/base'
 
 export interface MemberOf {

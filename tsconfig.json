@@ -3,6 +3,7 @@
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules/**"],
 	"compilerOptions": {
-		"types": ["node" /* , "jest" */]
+		// "types": ["node" /* , "jest" */]
+		"moduleResolution": "nodenext"
 	}
 }

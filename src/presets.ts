@@ -2,37 +2,23 @@ import { Device } from './device.js'
 import * as Color from './colors.js'
 import { ActionId } from './actions.js'
 import { FeedbackId } from './feedbacks.js'
-import { type CompanionButtonPresetDefinition, type CompanionPresetDefinitions } from '@companion-module/base'
+import { type CompanionPresetDefinitions, type CompanionPresetSection } from '@companion-module/base'
 
-interface CompanionPresetExt extends CompanionButtonPresetDefinition {
-	feedbacks: Array<
-		{
-			feedbackId: FeedbackId
-		} & CompanionButtonPresetDefinition['feedbacks'][0]
-	>
-	steps: Array<{
-		down: Array<
-			{
-				actionId: ActionId
-			} & CompanionButtonPresetDefinition['steps'][0]['down'][0]
-		>
-		up: Array<
-			{
-				actionId: ActionId
-			} & CompanionButtonPresetDefinition['steps'][0]['up'][0]
-		>
-	}>
-}
-interface CompanionPresetDefinitionsExt {
-	[id: string]: CompanionPresetExt | undefined
-}
+export function getPresets(device: Device): {
+	sections: CompanionPresetSection[]
+	presets: CompanionPresetDefinitions<any>
+} {
+	const presets: CompanionPresetDefinitions<any> = {}
+	const sections: CompanionPresetSection[] = []
 
-export function getPresets(device: Device): CompanionPresetDefinitions {
-	const presets: CompanionPresetDefinitionsExt = {}
+	const devicePresets: string[] = []
+	const profilePresets: string[] = []
+	const groupPresets: string[] = []
+	const linkStatePresets: string[] = []
+	const poePresets: string[] = []
 
 	presets[`device`] = {
-		type: 'button',
-		category: 'Device',
+		type: 'simple',
 		name: `Device name and Active Profile Name\n`,
 		style: {
 			text: `$(GigaCore:device_name)\n$(GigaCore:active_profile)`,
@@ -55,10 +41,10 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		],
 		feedbacks: [],
 	}
+	devicePresets.push('device')
 
 	presets[`reboot`] = {
-		type: 'button',
-		category: 'Device',
+		type: 'simple',
 		name: `Reboot device`,
 		style: {
 			text: `Reboot\n$(GigaCore:device_name)`,
@@ -81,10 +67,10 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		],
 		feedbacks: [],
 	}
+	devicePresets.push('reboot')
 
 	presets[`reset`] = {
-		type: 'button',
-		category: 'Device',
+		type: 'simple',
 		name: `Reset device`,
 		style: {
 			text: `Reset\n$(GigaCore:device_name)`,
@@ -109,10 +95,10 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		],
 		feedbacks: [],
 	}
+	devicePresets.push('reset')
 
 	presets[`active_profile`] = {
-		type: 'button',
-		category: 'Profiles',
+		type: 'simple',
 		name: `Active Profile Name\nEmpty if no profile active`,
 		style: {
 			text: `$(GigaCore:active_profile)`,
@@ -135,14 +121,14 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		],
 		feedbacks: [],
 	}
+	profilePresets.push('active_profile')
 
 	Array(device.getNrProfiles())
 		.fill(0)
 		.forEach((_, i) => {
 			const id = i + 1
 			presets[`recall_profile_${id}`] = {
-				type: 'button',
-				category: 'Profiles',
+				type: 'simple',
 				name: `Profile ${id} name\nIncludes Name`,
 				style: {
 					text: `Recall $(GigaCore:profile_${id}_name)`,
@@ -167,9 +153,9 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 				],
 				feedbacks: [],
 			}
+			profilePresets.push(`recall_profile_${id}`)
 			presets[`save_profile_${id}`] = {
-				type: 'button',
-				category: 'Profiles',
+				type: 'simple',
 				name: `Save to profile ${id}`,
 				style: {
 					text: `Save to profile ${id}`,
@@ -203,14 +189,14 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					},
 				],
 			}
+			profilePresets.push(`save_profile_${id}`)
 		})
 
 	if (device.groups) {
 		const default_port = 1
 		device.groups.forEach((g) => {
 			presets[`set_port_to_group_${g.group_id}`] = {
-				type: 'button',
-				category: 'Group',
+				type: 'simple',
 				name: `Set port to group ${g.group_id} - ${g.name}`,
 				style: {
 					text: `Port ${default_port}\\nset to\\n$(GigaCore:group_${g.group_id}_name)`,
@@ -253,6 +239,7 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					},
 				],
 			}
+			groupPresets.push(`set_port_to_group_${g.group_id}`)
 		})
 	}
 
@@ -260,8 +247,7 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		device.ports.forEach((_, i) => {
 			const port_nr = i + 1
 			presets[`port_state_${port_nr}`] = {
-				type: 'button',
-				category: 'Link State',
+				type: 'simple',
 				name: `Link State for port ${port_nr}`,
 				style: {
 					text: `Link\\n$(GigaCore:port_${port_nr}_legend)`,
@@ -322,9 +308,9 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					},
 				],
 			}
+			linkStatePresets.push(`port_state_${port_nr}`)
 			presets[`port_group_${port_nr}`] = {
-				type: 'button',
-				category: 'Group',
+				type: 'simple',
 				name: `Increment group or trunk for port ${port_nr}`,
 				style: {
 					text: `$(GigaCore:port_${port_nr}_legend)\\n$(GigaCore:port_${port_nr}_member_name)`,
@@ -375,6 +361,7 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					},
 				],
 			}
+			groupPresets.push(`port_group_${port_nr}`)
 		})
 	}
 
@@ -382,8 +369,7 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 		device.poe_ports.forEach((port) => {
 			const port_nr = port.port_number
 			presets[`toggle_poe_port_${port_nr}`] = {
-				type: 'button',
-				category: 'PoE',
+				type: 'simple',
 				name: `Toggle PoE on port ${port_nr}`,
 				style: {
 					text: `Toggle PoE $(GigaCore:port_${port_nr}_legend)`,
@@ -426,8 +412,40 @@ export function getPresets(device: Device): CompanionPresetDefinitions {
 					},
 				],
 			}
+			poePresets.push(`toggle_poe_port_${port_nr}`)
 		})
 	}
 
-	return presets
+	if (devicePresets.length > 0)
+		sections.push({
+			id: 'device',
+			name: 'Device',
+			definitions: [{ id: 'device-group', type: 'simple', name: 'Device Presets', presets: devicePresets }],
+		})
+	if (profilePresets.length > 0)
+		sections.push({
+			id: 'profiles',
+			name: 'Profiles',
+			definitions: [{ id: 'profile-group', type: 'simple', name: 'Profile Presets', presets: profilePresets }],
+		})
+	if (groupPresets.length > 0)
+		sections.push({
+			id: 'group',
+			name: 'Group',
+			definitions: [{ id: 'group-group', type: 'simple', name: 'Group Presets', presets: groupPresets }],
+		})
+	if (linkStatePresets.length > 0)
+		sections.push({
+			id: 'link-state',
+			name: 'Link State',
+			definitions: [{ id: 'link-state-group', type: 'simple', name: 'Link State Presets', presets: linkStatePresets }],
+		})
+	if (poePresets.length > 0)
+		sections.push({
+			id: 'poe',
+			name: 'PoE',
+			definitions: [{ id: 'poe-group', type: 'simple', name: 'PoE Presets', presets: poePresets }],
+		})
+
+	return { sections, presets }
 }

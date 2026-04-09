@@ -4,6 +4,8 @@ Control your Luminex GigaCore
 
 For second generation GigaCore's, firmware version 1.2.0 or later is advised. Earlier versions may work but were not tested.
 
+- GigaCore O26-I
+- GigaCore S30-I
 - GigaCore30i
 - GigaCore20t
 - GigaCore18t
