@@ -1,4 +1,4 @@
-import { InstanceBase, InstanceStatus, runEntrypoint, type SomeCompanionConfigField } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
 import { type config, getConfigFields } from './config.js'
 import { getActions } from './actions.js'
 import { getPresets } from './presets.js'
@@ -9,35 +9,51 @@ import { Device } from './device.js'
 import { Gen1 } from './gen1.js'
 import { Gen2 } from './gen2.js'
 
-export class ModuleInstance extends InstanceBase<config> {
+export default class ModuleInstance extends InstanceBase<InstanceTypes> {
 	config: config | undefined
 	public device?: Device
 
 	constructor(internal: unknown) {
 		super(internal)
+		this.log('debug', 'ModuleInstance constructor completed')
 	}
 
 	async init(config: config): Promise<void> {
-		const old_host = this.getHostAddress()
-		this.config = config
-		const host = this.getHostAddress()
-		if (host) {
-			if (this.device && old_host !== host) {
+		this.log('debug', 'init called')
+		try {
+			const old_host = this.getHostAddress()
+			this.config = config
+			const host = this.getHostAddress()
+			if (host) {
+				if (this.device && old_host !== host) {
+					await this.device?.destroy()
+					delete this.device
+				}
+				this.log('debug', `Creating device, gen1: ${this.config.gen1}`)
+				try {
+					this.device = this.config.gen1 ? new Gen1(this) : new Gen2(this)
+					this.log('info', 'Device created successfully')
+				} catch (e: any) {
+					this.log('error', `Error creating device: ${e?.message || e}`)
+					this.updateStatus(InstanceStatus.ConnectionFailure, 'Failed to create device')
+					return
+				}
+				this.updateStatus(InstanceStatus.Connecting)
+				this.device.setConfig(host, this.config && this.config.password ? this.config.password : '')
+				this.device.initConnection()
+			} else {
+				this.log('warn', 'No host configured')
 				await this.device?.destroy()
 				delete this.device
 			}
-			this.device = this.config.gen1 ? new Gen1(this) : new Gen2(this)
-			this.updateStatus(InstanceStatus.Connecting)
-			this.device.setConfig(host, this.config && this.config.password ? this.config.password : '')
-			this.device.initConnection()
-		} else {
-			await this.device?.destroy()
-			delete this.device
+			this.initVariables()
+			this.initFeedbacks()
+			this.initActions()
+			this.initPresets()
+		} catch (e: any) {
+			this.log('error', `init error: ${e?.message || e}`)
+			this.updateStatus(InstanceStatus.ConnectionFailure, `Initialization error: ${e?.message || e}`)
 		}
-		this.initVariables()
-		this.initFeedbacks()
-		this.initActions()
-		this.initPresets()
 	}
 
 	// When module gets deleted
@@ -68,7 +84,7 @@ export class ModuleInstance extends InstanceBase<config> {
 			const variables = getVariables(this.device)
 			this.setVariableDefinitions(variables)
 		} else {
-			this.setVariableDefinitions([])
+			this.setVariableDefinitions({})
 		}
 		this.setVariableValues({
 			selected_port: new_port,
@@ -87,10 +103,10 @@ export class ModuleInstance extends InstanceBase<config> {
 
 	initPresets(): void {
 		if (this.device) {
-			const presets = getPresets(this.device)
-			this.setPresetDefinitions(presets)
+			const { sections, presets } = getPresets(this.device)
+			this.setPresetDefinitions(sections, presets as any)
 		} else {
-			this.setPresetDefinitions({})
+			this.setPresetDefinitions([], {})
 		}
 	}
 
@@ -122,4 +138,4 @@ export class ModuleInstance extends InstanceBase<config> {
 	}
 }
 
-runEntrypoint(ModuleInstance, upgradeScripts)
+export { upgradeScripts }

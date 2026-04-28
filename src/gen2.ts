@@ -1,4 +1,4 @@
-import { ModuleInstance } from './main.js'
+import ModuleInstance from './main.js'
 import { FeedbackId } from './feedbacks.js'
 import { FixedVariableId } from './variables.js'
 import { WS, type Subscription } from './websocket.js'
@@ -43,15 +43,8 @@ const wsSubscriptions: Subscription[] = [
 ]
 
 // Class for handling communication with GigaCore 'gen2' devices:
-// - GigaCore30i
-// - GigaCore20t
-// - GigaCore18t
-// - GigaCore16t
-// - GigaCore16i
-// - GigaCore10i
-// - GigaCore10t
-// - GigaCore16tf
-// - GigaCore10t-IP
+// Applicable models are listed here: https://support.luminex.be/portal/en/kb/articles/gigacore-generation-2-devices
+
 export class Gen2 extends Device {
 	private ws?: WS
 

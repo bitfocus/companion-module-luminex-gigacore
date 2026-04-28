@@ -1,4 +1,4 @@
-import { ModuleInstance } from './main.js'
+import ModuleInstance from './main.js'
 import { FeedbackId } from './feedbacks.js'
 import { FixedVariableId } from './variables.js'
 import { Device, type Port, type PoePort, type Profile, type Group, type Trunk, type MemberOf } from './device.js'
