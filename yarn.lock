@@ -657,6 +657,7 @@ __metadata:
     ts-node: "npm:^10.9.2"
     typescript: "npm:^6.0.2"
     typescript-eslint: "npm:^8.58.1"
+    undici: "npm:^8.8.0"
     ws: "npm:^7.5.11"
   languageName: unknown
   linkType: soft
@@ -2017,6 +2018,13 @@ __metadata:
   version: 7.18.2
   resolution: "undici-types@npm:7.18.2"
   checksum: 10c0/85a79189113a238959d7a647368e4f7c5559c3a404ebdb8fc4488145ce9426fcd82252a844a302798dfc0e37e6fb178ff481ed03bc4caf634c5757d9ef43521d
+  languageName: node
+  linkType: hard
+
+"undici@npm:^8.8.0":
+  version: 8.8.0
+  resolution: "undici@npm:8.8.0"
+  checksum: 10c0/6ee51e6b814b67e212b19349c38657be988d878ca669ccf2ad33f0ebbb0d83e851aa57554b6ce3c6668a9a4df3010fb6a6af7bd28692ade911083ef376a3a75d
   languageName: node
   linkType: hard
 

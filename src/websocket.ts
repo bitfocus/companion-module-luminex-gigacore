@@ -39,16 +39,19 @@ export class WS {
 
 	host: string
 	getAuthHeader?: () => string | undefined
+	getSecure?: () => boolean
 	constructor(
 		host: string,
 		callbacks: WsCallbacks,
 		subscriptions: Subscription[],
 		getAuthHeader?: () => string | undefined,
+		getSecure?: () => boolean,
 	) {
 		this.host = host
 		this.callbacks = callbacks
 		this.subscriptions = subscriptions
 		this.getAuthHeader = getAuthHeader
+		this.getSecure = getSecure
 	}
 
 	private safeStringify(value: unknown): string {
@@ -68,15 +71,23 @@ export class WS {
 			delete this.reconnect_timer
 		}
 
-		const url = `ws://${this.host}/api/ws`
+		const secure = this.getSecure?.() ?? false
+		const url = `${secure ? 'wss' : 'ws'}://${this.host}/api/ws`
 
 		if (this.ws) {
 			this.ws.close(1000)
 			delete this.ws
 		}
 		const authHeader = this.getAuthHeader?.()
-		const options = authHeader ? { headers: { Authorization: authHeader } } : undefined
-		this.ws = new WebSocket(url, options)
+		const options: WebSocket.ClientOptions = {}
+		if (authHeader) {
+			options.headers = { Authorization: authHeader }
+		}
+		if (secure) {
+			// Devices may present a self-signed certificate.
+			options.rejectUnauthorized = false
+		}
+		this.ws = new WebSocket(url, Object.keys(options).length ? options : undefined)
 
 		this.ws.onopen = this.websocketOpen.bind(this)
 		this.ws.onclose = this.websocketClose.bind(this)
