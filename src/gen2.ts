@@ -80,6 +80,7 @@ export class Gen2 extends Device {
 				ondisconnect: this.websocketDisconnect.bind(this),
 			},
 			wsSubscriptions,
+			() => this.authHeader(),
 		)
 	}
 
@@ -94,8 +95,9 @@ export class Gen2 extends Device {
 	// Gen-2 specific functions
 	public initConnection(): void {
 		const headers = new Headers()
-		if (this.password !== '') {
-			headers.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			headers.set('Authorization', authHeader)
 		}
 		const options = {
 			method: 'GET',
@@ -194,8 +196,9 @@ export class Gen2 extends Device {
 		const url = `http://${this.host}/api/${cmd}`
 		const requestHeaders = new Headers()
 		requestHeaders.set('Content-Type', 'application/json')
-		if (this.password !== '') {
-			requestHeaders.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			requestHeaders.set('Authorization', authHeader)
 		}
 		const options = {
 			method: type,

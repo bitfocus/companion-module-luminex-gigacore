@@ -38,10 +38,17 @@ export class WS {
 	subscriptions: Subscription[]
 
 	host: string
-	constructor(host: string, callbacks: WsCallbacks, subscriptions: Subscription[]) {
+	getAuthHeader?: () => string | undefined
+	constructor(
+		host: string,
+		callbacks: WsCallbacks,
+		subscriptions: Subscription[],
+		getAuthHeader?: () => string | undefined,
+	) {
 		this.host = host
 		this.callbacks = callbacks
 		this.subscriptions = subscriptions
+		this.getAuthHeader = getAuthHeader
 	}
 
 	private safeStringify(value: unknown): string {
@@ -67,7 +74,9 @@ export class WS {
 			this.ws.close(1000)
 			delete this.ws
 		}
-		this.ws = new WebSocket(url)
+		const authHeader = this.getAuthHeader?.()
+		const options = authHeader ? { headers: { Authorization: authHeader } } : undefined
+		this.ws = new WebSocket(url, options)
 
 		this.ws.onopen = this.websocketOpen.bind(this)
 		this.ws.onclose = this.websocketClose.bind(this)

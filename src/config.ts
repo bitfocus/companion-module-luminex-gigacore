@@ -3,9 +3,18 @@ import { InstanceBase, type SomeCompanionConfigField, type InstanceTypes } from 
 export interface config {
 	bonjour_host: string
 	host: string
-	password: string
 	gen1: boolean
 	[key: string]: any
+}
+
+export interface secrets {
+	password?: string
+	[key: string]: any
+}
+
+export interface GigaCoreInstanceTypes extends InstanceTypes {
+	config: config
+	secrets: secrets
 }
 
 export const instanceTypes: InstanceTypes = {
@@ -47,7 +56,7 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
 			default: false,
 		},
 		{
-			type: 'textinput',
+			type: 'secret-text',
 			id: 'password',
 			label: 'Password',
 			tooltip: 'Only provide a password when authentication is enabled on the device',

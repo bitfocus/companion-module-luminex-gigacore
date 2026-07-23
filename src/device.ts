@@ -79,6 +79,12 @@ export abstract class Device {
 		this.password = password
 	}
 
+	/** Basic auth header for the device, or undefined when no password is set. */
+	protected authHeader(): string | undefined {
+		if (this.password === '') return undefined
+		return `Basic ${Buffer.from(`admin:${this.password}`).toString('base64')}`
+	}
+
 	public getNrPorts(): number {
 		return this.nr_ports
 	}
