@@ -1,4 +1,9 @@
-import type { CompanionStaticUpgradeScript, CompanionStaticUpgradeResult } from '@companion-module/base'
+import type {
+	CompanionStaticUpgradeScript,
+	CompanionStaticUpgradeProps,
+	CompanionStaticUpgradeResult,
+	CompanionUpgradeContext,
+} from '@companion-module/base'
 import type { config, secrets } from './config.js'
 
 export const upgradeScripts: CompanionStaticUpgradeScript<config, secrets>[] = [
@@ -9,11 +14,13 @@ export const upgradeScripts: CompanionStaticUpgradeScript<config, secrets>[] = [
 	 * authentication keeps working after the upgrade, and remove the plain-text copy
 	 * from the config store.
 	 */
-	((_context, props): CompanionStaticUpgradeResult<config, secrets> => {
-		const legacyConfig = props.config as (config & { password?: string }) | null
-		const legacyPassword = legacyConfig?.password
+	(
+		_context: CompanionUpgradeContext<config>,
+		props: CompanionStaticUpgradeProps<config, secrets>,
+	): CompanionStaticUpgradeResult<config, secrets> => {
+		const legacyPassword = props.config?.password
 
-		if (!legacyConfig || legacyPassword === undefined) {
+		if (props.config == null || legacyPassword === undefined) {
 			return {
 				updatedConfig: null,
 				updatedSecrets: null,
@@ -22,7 +29,7 @@ export const upgradeScripts: CompanionStaticUpgradeScript<config, secrets>[] = [
 			}
 		}
 
-		const updatedConfig = { ...legacyConfig }
+		const updatedConfig = { ...props.config }
 		delete updatedConfig.password
 
 		return {
@@ -34,5 +41,5 @@ export const upgradeScripts: CompanionStaticUpgradeScript<config, secrets>[] = [
 			updatedActions: [],
 			updatedFeedbacks: [],
 		}
-	}) as CompanionStaticUpgradeScript<config, secrets>,
+	},
 ]

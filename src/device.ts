@@ -52,7 +52,7 @@ export abstract class Device {
 	instance: ModuleInstance
 
 	/** Transport scheme in use for this device. Determined at connect time (see Gen2). */
-	protocol: 'http' | 'https' = 'http'
+	protected protocol: 'http' | 'https' = 'http'
 
 	/**
 	 * Shared dispatcher used for HTTPS requests. GigaCore devices may present a self-signed
@@ -111,15 +111,17 @@ export abstract class Device {
 	}
 
 	/**
-	 * fetch wrapper for device requests. When connected over HTTPS it injects the insecure
-	 * dispatcher so self-signed device certificates are accepted.
+	 * fetch wrapper for device requests. For HTTPS URLs it injects the insecure dispatcher so
+	 * self-signed device certificates are accepted.
+	 *
+	 * We deliberately use undici's own fetch + Agent rather than Node's global fetch: the
+	 * standalone undici version differs from the one bundled with Node, and feeding a standalone
+	 * Agent into the global fetch is unreliable across versions. Using the matched pair keeps the
+	 * dispatcher (which disables certificate validation) reliably honoured.
 	 */
 	protected async deviceFetch(url: string, options: UndiciRequestInit): Promise<UndiciResponse> {
 		const opts: UndiciRequestInit = { ...options }
-		if (this.protocol === 'https') {
-			// Use undici's own fetch + Agent so the dispatcher (which disables certificate
-			// validation for self-signed device certs) is actually honoured. Passing an Agent
-			// from this package to Node's built-in global fetch is unreliable across versions.
+		if (url.startsWith('https:')) {
 			opts.dispatcher = Device.insecureDispatcher
 		}
 		return undiciFetch(url, opts)

@@ -1,4 +1,4 @@
-import { InstanceBase, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
+import type { SomeCompanionConfigField, InstanceTypes, JsonObject } from '@companion-module/base'
 
 export interface config {
 	bonjour_host: string
@@ -7,28 +7,13 @@ export interface config {
 	[key: string]: any
 }
 
-export interface secrets {
+export type secrets = JsonObject & {
 	password?: string
-	[key: string]: any
 }
 
 export interface GigaCoreInstanceTypes extends InstanceTypes {
 	config: config
 	secrets: secrets
-}
-
-export const instanceTypes: InstanceTypes = {
-	config: {} as config,
-	secrets: {},
-	actions: {},
-	feedbacks: {},
-	variables: {},
-}
-
-export interface InstanceBaseExt<TInstanceTypes extends InstanceTypes> extends InstanceBase<TInstanceTypes> {
-	config: TInstanceTypes['config']
-	UpdateVariablesValues(): void
-	InitVariables(): void
 }
 
 export const getConfigFields = (): SomeCompanionConfigField[] => {

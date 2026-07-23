@@ -80,8 +80,7 @@ export class Gen2 extends Device {
 				ondisconnect: this.websocketDisconnect.bind(this),
 			},
 			wsSubscriptions,
-			() => this.authHeader(),
-			() => this.secure,
+			() => ({ secure: this.secure, authHeader: this.authHeader() }),
 		)
 	}
 
@@ -114,22 +113,23 @@ export class Gen2 extends Device {
 		const schemes: ('http' | 'https')[] = ['http', 'https']
 		let lastStatus: number | undefined
 		for (const scheme of schemes) {
-			this.protocol = scheme
 			try {
-				const res = await this.deviceFetch(`${this.httpBase}/api/device`, {
+				const res = await this.deviceFetch(`${scheme}://${this.host}/api/device`, {
 					method: 'GET',
 					headers: headers,
 					// Bound each probe so a filtered/unreachable port doesn't hang the connect.
 					signal: AbortSignal.timeout(5000),
 				})
-				if (res.status === 200) {
-					this.log('debug', `Connected to ${this.host} over ${scheme}`)
-					this.applyDeviceInfo(await res.json())
-					return
-				}
-				if (res.status === 401 || res.status === 403) {
-					// The scheme is correct but the device rejected our credentials; no point in
-					// trying the other scheme.
+				if (res.status === 200 || res.status === 401 || res.status === 403) {
+					// A response we understand means this is the scheme the device speaks; commit it
+					// so subsequent requests (and the WebSocket) use it.
+					this.protocol = scheme
+					if (res.status === 200) {
+						this.log('debug', `Connected to ${this.host} over ${scheme}`)
+						this.applyDeviceInfo(await res.json())
+						return
+					}
+					// 401/403: correct scheme, rejected credentials — no point trying the other one.
 					this.log('error', `Authentication failed for ${this.host} over ${scheme} (status ${res.status})`)
 					this.updateStatus(InstanceStatus.ConnectionFailure, 'Authentication failed')
 					return
