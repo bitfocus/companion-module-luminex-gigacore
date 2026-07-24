@@ -80,6 +80,7 @@ export class Gen2 extends Device {
 				ondisconnect: this.websocketDisconnect.bind(this),
 			},
 			wsSubscriptions,
+			() => ({ secure: this.secure, authHeader: this.authHeader() }),
 		)
 	}
 
@@ -93,52 +94,82 @@ export class Gen2 extends Device {
 
 	// Gen-2 specific functions
 	public initConnection(): void {
-		const headers = new Headers()
-		if (this.password !== '') {
-			headers.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
-		}
-		const options = {
-			method: 'GET',
-			headers: headers,
-		}
 		this.log('debug', 'init connection')
-		fetch(`http://${this.host}/api/device`, options)
-			.then(async (res) => {
-				if (res.status == 200) {
-					return res.json()
+		void this.detectAndConnect()
+	}
+
+	/**
+	 * Probe the device to determine which scheme it serves, then connect.
+	 * HTTP is tried first (still the most common case) and HTTPS is used as a fallback,
+	 * since newer GigaCore Gen2 firmware may serve https (possibly with a self-signed cert).
+	 */
+	private async detectAndConnect(): Promise<void> {
+		const headers: Record<string, string> = {}
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			headers['Authorization'] = authHeader
+		}
+
+		const schemes: ('http' | 'https')[] = ['http', 'https']
+		let lastStatus: number | undefined
+		for (const scheme of schemes) {
+			try {
+				const res = await this.deviceFetch(`${scheme}://${this.host}/api/device`, {
+					method: 'GET',
+					headers: headers,
+					// Bound each probe so a filtered/unreachable port doesn't hang the connect.
+					signal: AbortSignal.timeout(5000),
+				})
+				if (res.status === 200 || res.status === 401 || res.status === 403) {
+					// A response we understand means this is the scheme the device speaks; commit it
+					// so subsequent requests (and the WebSocket) use it.
+					this.protocol = scheme
+					if (res.status === 200) {
+						this.log('debug', `Connected to ${this.host} over ${scheme}`)
+						this.applyDeviceInfo(await res.json())
+						return
+					}
+					// 401/403: correct scheme, rejected credentials — no point trying the other one.
+					this.log('error', `Authentication failed for ${this.host} over ${scheme} (status ${res.status})`)
+					this.updateStatus(InstanceStatus.ConnectionFailure, 'Authentication failed')
+					return
 				}
-				throw new Error(this.safeStringify(res))
-			})
-			.then((data) => {
-				if (typeof data === 'object' && data !== null) {
-					this.log('debug', JSON.stringify(data))
-					const changedVariables: CompanionVariableValues = {}
-					if ('name' in data && typeof data.name === 'string') {
-						changedVariables[FixedVariableId.deviceName] = data.name
-					}
-					if ('description' in data && typeof data.description === 'string') {
-						changedVariables[FixedVariableId.description] = data.description
-					}
-					if ('serial' in data && typeof data.serial === 'string') {
-						changedVariables[FixedVariableId.serial] = data.serial
-					}
-					if ('mac_address' in data && typeof data.mac_address === 'string') {
-						changedVariables[FixedVariableId.macAddress] = data.mac_address
-					}
-					if ('model' in data && typeof data.model === 'string') {
-						changedVariables[FixedVariableId.model] = data.model
-					}
-					this.instance.setVariableValues(changedVariables)
-					this.initWebSocket()
-				} else {
-					this.updateStatus(InstanceStatus.ConnectionFailure)
-				}
-			})
-			.catch((error) => {
-				this.log('debug', `failed connection: ${JSON.stringify(error)}`)
-				this.log('debug', JSON.stringify(error))
-				this.updateStatus(InstanceStatus.ConnectionFailure)
-			})
+				// Any other status (e.g. 400 when speaking plain http to an https-only device)
+				// means this scheme is wrong; fall through and try the next one.
+				lastStatus = res.status
+				this.log('debug', `Unexpected status ${res.status} from ${this.host} over ${scheme}, trying next scheme`)
+			} catch (error) {
+				this.log('debug', `Cannot reach ${this.host} over ${scheme}: ${this.errorMessage(error)}`)
+			}
+		}
+		this.log('error', `Failed to connect to ${this.host}${lastStatus ? ` (last status ${lastStatus})` : ''}`)
+		this.updateStatus(InstanceStatus.ConnectionFailure)
+	}
+
+	private applyDeviceInfo(data: unknown): void {
+		if (typeof data === 'object' && data !== null) {
+			this.log('debug', JSON.stringify(data))
+			const changedVariables: CompanionVariableValues = {}
+			if ('name' in data && typeof data.name === 'string') {
+				changedVariables[FixedVariableId.deviceName] = data.name
+			}
+			if ('description' in data && typeof data.description === 'string') {
+				changedVariables[FixedVariableId.description] = data.description
+			}
+			if ('serial' in data && typeof data.serial === 'string') {
+				changedVariables[FixedVariableId.serial] = data.serial
+			}
+			if ('mac_address' in data && typeof data.mac_address === 'string') {
+				changedVariables[FixedVariableId.macAddress] = data.mac_address
+			}
+			if ('model' in data && typeof data.model === 'string') {
+				changedVariables[FixedVariableId.model] = data.model
+			}
+			this.instance.setVariableValues(changedVariables)
+			this.initWebSocket()
+		} else {
+			this.updateStatus(InstanceStatus.ConnectionFailure)
+		}
 	}
 
 	public disconnect(msg: string): void {
@@ -191,11 +222,11 @@ export class Gen2 extends Device {
 	}
 
 	private sendCommand(cmd: string, type: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | undefined, params: Json): void {
-		const url = `http://${this.host}/api/${cmd}`
-		const requestHeaders = new Headers()
-		requestHeaders.set('Content-Type', 'application/json')
-		if (this.password !== '') {
-			requestHeaders.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
+		const url = `${this.httpBase}/api/${cmd}`
+		const requestHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			requestHeaders['Authorization'] = authHeader
 		}
 		const options = {
 			method: type,
@@ -208,7 +239,7 @@ export class Gen2 extends Device {
 			this.log('debug', JSON.stringify(options))
 		}
 
-		fetch(url, options)
+		this.deviceFetch(url, options)
 			.then(async (res) => {
 				if (res.ok) {
 					const contentType = res.headers.get('content-type')

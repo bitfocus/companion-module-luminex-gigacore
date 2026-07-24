@@ -29,6 +29,15 @@ export class Gen1 extends Device {
 		super(instance)
 	}
 
+	/**
+	 * Gen1 devices always expect HTTP basic auth with the `admin` username, even when the
+	 * password is empty. Unlike the base implementation, we never omit the header — omitting it
+	 * makes the device reply 401.
+	 */
+	protected override authHeader(): string {
+		return `Basic ${Buffer.from(`admin:${this.password}`).toString('base64')}`
+	}
+
 	public async destroy(): Promise<void> {
 		this.stopDevicePoll()
 		this.updateStatus(InstanceStatus.Disconnected)
@@ -40,14 +49,17 @@ export class Gen1 extends Device {
 
 	public initConnection(): void {
 		this.stopDevicePoll()
-		const requestHeaders = new Headers()
-		requestHeaders.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
+		const requestHeaders: Record<string, string> = {}
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			requestHeaders['Authorization'] = authHeader
+		}
 		const options = {
 			method: 'GET',
 			headers: requestHeaders,
 		}
 		this.log('debug', 'init connection')
-		fetch(`http://${this.host}/config/switchlegend`, options)
+		this.deviceFetch(`${this.httpBase}/config/switchlegend`, options)
 			.then(async (res) => {
 				if (res.status == 200) {
 					return res.text()
@@ -73,7 +85,7 @@ export class Gen1 extends Device {
 			})
 			.catch((error) => {
 				this.log('debug', 'failed connection')
-				this.log('debug', JSON.stringify(error))
+				this.log('debug', this.errorMessage(error))
 				this.updateStatus(InstanceStatus.ConnectionFailure)
 			})
 	}
@@ -144,12 +156,15 @@ export class Gen1 extends Device {
 		type: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | undefined,
 		params: any = undefined,
 	): void {
-		const url = `http://${this.host}/${cmd}`
-		const requestHeaders = new Headers()
+		const url = `${this.httpBase}/${cmd}`
+		const requestHeaders: Record<string, string> = {}
 		if (type && type !== 'GET') {
-			requestHeaders.set('Content-Type', 'application/x-www-form-urlencoded')
+			requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded'
 		}
-		requestHeaders.set('Authorization', `Basic ${Buffer.from('admin:' + this.password).toString('base64')}`)
+		const authHeader = this.authHeader()
+		if (authHeader) {
+			requestHeaders['Authorization'] = authHeader
+		}
 
 		const options = {
 			method: type,
@@ -162,7 +177,7 @@ export class Gen1 extends Device {
 			this.log('debug', JSON.stringify(options))
 		}
 
-		fetch(url, options)
+		this.deviceFetch(url, options)
 			.then(async (res) => {
 				if (res.ok) {
 					if (!this.connected) {
@@ -196,7 +211,7 @@ export class Gen1 extends Device {
 				}
 			})
 			.catch((error) => {
-				this.log('debug', `CMD error: ${JSON.stringify(error)}`)
+				this.log('debug', `CMD error: ${this.errorMessage(error)}`)
 			})
 	}
 

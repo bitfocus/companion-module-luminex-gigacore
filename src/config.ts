@@ -1,25 +1,19 @@
-import { InstanceBase, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
+import type { SomeCompanionConfigField, InstanceTypes, JsonObject } from '@companion-module/base'
 
 export interface config {
 	bonjour_host: string
 	host: string
-	password: string
 	gen1: boolean
 	[key: string]: any
 }
 
-export const instanceTypes: InstanceTypes = {
-	config: {} as config,
-	secrets: {},
-	actions: {},
-	feedbacks: {},
-	variables: {},
+export type secrets = JsonObject & {
+	password?: string
 }
 
-export interface InstanceBaseExt<TInstanceTypes extends InstanceTypes> extends InstanceBase<TInstanceTypes> {
-	config: TInstanceTypes['config']
-	UpdateVariablesValues(): void
-	InitVariables(): void
+export interface GigaCoreInstanceTypes extends InstanceTypes {
+	config: config
+	secrets: secrets
 }
 
 export const getConfigFields = (): SomeCompanionConfigField[] => {
@@ -47,7 +41,7 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
 			default: false,
 		},
 		{
-			type: 'textinput',
+			type: 'secret-text',
 			id: 'password',
 			label: 'Password',
 			tooltip: 'Only provide a password when authentication is enabled on the device',

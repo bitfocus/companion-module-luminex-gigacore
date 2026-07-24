@@ -28,6 +28,14 @@ export interface Subscription {
 	method: 'full' | 'changes'
 }
 
+/** Connection parameters resolved lazily at (re)connect time. */
+export interface WsConnectionInfo {
+	/** Connect over TLS (wss) rather than plain ws. */
+	secure: boolean
+	/** Authorization header value, or undefined when no authentication is configured. */
+	authHeader?: string
+}
+
 export class WS {
 	ws?: WebSocket
 	reconnect_timer?: NodeJS.Timeout
@@ -38,10 +46,17 @@ export class WS {
 	subscriptions: Subscription[]
 
 	host: string
-	constructor(host: string, callbacks: WsCallbacks, subscriptions: Subscription[]) {
+	getConnection: () => WsConnectionInfo
+	constructor(
+		host: string,
+		callbacks: WsCallbacks,
+		subscriptions: Subscription[],
+		getConnection: () => WsConnectionInfo,
+	) {
 		this.host = host
 		this.callbacks = callbacks
 		this.subscriptions = subscriptions
+		this.getConnection = getConnection
 	}
 
 	private safeStringify(value: unknown): string {
@@ -61,13 +76,22 @@ export class WS {
 			delete this.reconnect_timer
 		}
 
-		const url = `ws://${this.host}/api/ws`
+		const { secure, authHeader } = this.getConnection()
+		const url = `${secure ? 'wss' : 'ws'}://${this.host}/api/ws`
 
 		if (this.ws) {
 			this.ws.close(1000)
 			delete this.ws
 		}
-		this.ws = new WebSocket(url)
+		const options: WebSocket.ClientOptions = {}
+		if (authHeader) {
+			options.headers = { Authorization: authHeader }
+		}
+		if (secure) {
+			// Devices may present a self-signed certificate.
+			options.rejectUnauthorized = false
+		}
+		this.ws = new WebSocket(url, Object.keys(options).length ? options : undefined)
 
 		this.ws.onopen = this.websocketOpen.bind(this)
 		this.ws.onclose = this.websocketClose.bind(this)

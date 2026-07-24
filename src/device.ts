@@ -1,5 +1,11 @@
 import ModuleInstance from './main.js'
 import { InstanceStatus, type CompanionVariableValue } from '@companion-module/base'
+import {
+	Agent,
+	fetch as undiciFetch,
+	type RequestInit as UndiciRequestInit,
+	type Response as UndiciResponse,
+} from 'undici'
 
 export interface MemberOf {
 	id: number
@@ -45,6 +51,15 @@ export abstract class Device {
 	password = ''
 	instance: ModuleInstance
 
+	/** Transport scheme in use for this device. Determined at connect time (see Gen2). */
+	protected protocol: 'http' | 'https' = 'http'
+
+	/**
+	 * Shared dispatcher used for HTTPS requests. GigaCore devices may present a self-signed
+	 * certificate, so certificate validation is disabled for device connections.
+	 */
+	private static insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } })
+
 	connected = false
 
 	nr_ports = 0
@@ -77,6 +92,54 @@ export abstract class Device {
 	public setConfig(host: string, password: string): void {
 		this.host = host
 		this.password = password
+	}
+
+	/** Basic auth header for the device, or undefined when no password is set. */
+	protected authHeader(): string | undefined {
+		if (this.password === '') return undefined
+		return `Basic ${Buffer.from(`admin:${this.password}`).toString('base64')}`
+	}
+
+	/** Base HTTP(S) URL for the device, using the currently detected scheme. */
+	protected get httpBase(): string {
+		return `${this.protocol}://${this.host}`
+	}
+
+	/** Whether the WebSocket should connect over TLS (wss), matching the detected scheme. */
+	public get secure(): boolean {
+		return this.protocol === 'https'
+	}
+
+	/**
+	 * fetch wrapper for device requests. For HTTPS URLs it injects the insecure dispatcher so
+	 * self-signed device certificates are accepted.
+	 *
+	 * We deliberately use undici's own fetch + Agent rather than Node's global fetch: the
+	 * standalone undici version differs from the one bundled with Node, and feeding a standalone
+	 * Agent into the global fetch is unreliable across versions. Using the matched pair keeps the
+	 * dispatcher (which disables certificate validation) reliably honoured.
+	 */
+	protected async deviceFetch(url: string, options: UndiciRequestInit): Promise<UndiciResponse> {
+		const opts: UndiciRequestInit = { ...options }
+		if (url.startsWith('https:')) {
+			opts.dispatcher = Device.insecureDispatcher
+		}
+		return undiciFetch(url, opts)
+	}
+
+	/** Extract a human-readable message from a thrown error, including undici's `cause`. */
+	protected errorMessage(error: unknown): string {
+		if (error instanceof Error) {
+			const cause = (error as { cause?: unknown }).cause
+			if (cause instanceof Error) {
+				return `${error.message} (${cause.message})`
+			}
+			if (cause && typeof cause === 'object' && 'code' in cause) {
+				return `${error.message} (${String((cause as { code: unknown }).code)})`
+			}
+			return error.message
+		}
+		return String(error)
 	}
 
 	public getNrPorts(): number {

@@ -1,5 +1,5 @@
-import { InstanceBase, InstanceStatus, type SomeCompanionConfigField, type InstanceTypes } from '@companion-module/base'
-import { type config, getConfigFields } from './config.js'
+import { InstanceBase, InstanceStatus, type SomeCompanionConfigField } from '@companion-module/base'
+import { type config, type secrets, type GigaCoreInstanceTypes, getConfigFields } from './config.js'
 import { getActions } from './actions.js'
 import { getPresets } from './presets.js'
 import { getVariables } from './variables.js'
@@ -9,8 +9,9 @@ import { Device } from './device.js'
 import { Gen1 } from './gen1.js'
 import { Gen2 } from './gen2.js'
 
-export default class ModuleInstance extends InstanceBase<InstanceTypes> {
+export default class ModuleInstance extends InstanceBase<GigaCoreInstanceTypes> {
 	config: config | undefined
+	secrets: secrets | undefined
 	public device?: Device
 
 	constructor(internal: unknown) {
@@ -18,11 +19,12 @@ export default class ModuleInstance extends InstanceBase<InstanceTypes> {
 		this.log('debug', 'ModuleInstance constructor completed')
 	}
 
-	async init(config: config): Promise<void> {
+	async init(config: config, _isFirstInit: boolean, secrets: secrets): Promise<void> {
 		this.log('debug', 'init called')
 		try {
 			const old_host = this.getHostAddress()
 			this.config = config
+			this.secrets = secrets
 			const host = this.getHostAddress()
 			if (host) {
 				if (this.device && old_host !== host) {
@@ -39,7 +41,7 @@ export default class ModuleInstance extends InstanceBase<InstanceTypes> {
 					return
 				}
 				this.updateStatus(InstanceStatus.Connecting)
-				this.device.setConfig(host, this.config && this.config.password ? this.config.password : '')
+				this.device.setConfig(host, this.secrets && this.secrets.password ? this.secrets.password : '')
 				this.device.initConnection()
 			} else {
 				this.log('warn', 'No host configured')
@@ -70,9 +72,9 @@ export default class ModuleInstance extends InstanceBase<InstanceTypes> {
 		return getConfigFields()
 	}
 
-	async configUpdated(config: config): Promise<void> {
+	async configUpdated(config: config, secrets: secrets): Promise<void> {
 		this.updateStatus(InstanceStatus.Disconnected)
-		await this.init(config)
+		await this.init(config, false, secrets)
 	}
 
 	initVariables(): void {
