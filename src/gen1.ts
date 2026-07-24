@@ -29,6 +29,15 @@ export class Gen1 extends Device {
 		super(instance)
 	}
 
+	/**
+	 * Gen1 devices always expect HTTP basic auth with the `admin` username, even when the
+	 * password is empty. Unlike the base implementation, we never omit the header — omitting it
+	 * makes the device reply 401.
+	 */
+	protected override authHeader(): string {
+		return `Basic ${Buffer.from(`admin:${this.password}`).toString('base64')}`
+	}
+
 	public async destroy(): Promise<void> {
 		this.stopDevicePoll()
 		this.updateStatus(InstanceStatus.Disconnected)
